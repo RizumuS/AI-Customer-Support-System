@@ -33,6 +33,15 @@ public class DBConnection {
 
     public static Connection getConnection() throws SQLException {
 
+        // Explicitly load the MySQL JDBC driver.
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new SQLException(
+                "MySQL JDBC Driver could not be loaded.", e
+            );
+        }
+
         String url = properties.getProperty("db.url");
         String username = properties.getProperty("db.username");
         String password = properties.getProperty("db.password");

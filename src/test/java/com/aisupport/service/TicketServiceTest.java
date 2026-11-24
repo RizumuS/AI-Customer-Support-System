@@ -1,3 +1,4 @@
+
 package com.aisupport.service;
 
 import com.aisupport.database.DBConnection;
@@ -10,7 +11,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 import static org.junit.jupiter.api.Assertions.*;
-import java.util.UUID;
 
 class TicketServiceTest {
 
@@ -66,12 +66,17 @@ class TicketServiceTest {
         assertNotNull(ticket.getTicketNumber());
         assertEquals("OPEN", ticket.getStatus());
 
-        // Verify ticket history was also created
+        // Verify ticket history
         String historySql = """
-                SELECT COUNT(*)
+                SELECT field_changed, COUNT(*) AS record_count
                 FROM ticket_history
                 WHERE ticket_id = ?
+                GROUP BY field_changed
                 """;
+
+        int statusHistoryCount = 0;
+        int assignmentHistoryCount = 0;
+        int totalHistoryCount = 0;
 
         try (Connection connection = DBConnection.getConnection();
              PreparedStatement statement =
@@ -81,14 +86,56 @@ class TicketServiceTest {
 
             try (ResultSet result = statement.executeQuery()) {
 
-                assertTrue(result.next());
-                assertEquals(1, result.getInt(1));
+                while (result.next()) {
+
+                    String fieldChanged =
+                            result.getString("field_changed");
+
+                    int recordCount =
+                            result.getInt("record_count");
+
+                    totalHistoryCount += recordCount;
+
+                    if ("STATUS".equalsIgnoreCase(fieldChanged)) {
+                        statusHistoryCount = recordCount;
+                    }
+
+                    if ("ASSIGNED_AGENT".equalsIgnoreCase(fieldChanged)) {
+                        assignmentHistoryCount = recordCount;
+                    }
+                }
             }
         }
+
+        // Every newly created ticket must have one STATUS history record.
+        assertEquals(
+                1,
+                statusHistoryCount,
+                "Ticket must have exactly one initial STATUS history record."
+        );
+
+        // Automatic assignment may create one additional history record.
+        assertTrue(
+                assignmentHistoryCount == 0 ||
+                assignmentHistoryCount == 1,
+                "Ticket may have at most one automatic assignment history record."
+        );
+
+        assertEquals(
+                1 + assignmentHistoryCount,
+                totalHistoryCount,
+                "Ticket history should contain only the expected creation records."
+        );
 
         System.out.println("Ticket created successfully!");
         System.out.println("Ticket ID: " + ticket.getTicketId());
         System.out.println("Ticket Number: " + ticket.getTicketNumber());
         System.out.println("Ticket Status: " + ticket.getStatus());
+        System.out.println(
+                "Assignment History Records: " + assignmentHistoryCount
+        );
+        System.out.println(
+                "Total History Records: " + totalHistoryCount
+        );
     }
 }

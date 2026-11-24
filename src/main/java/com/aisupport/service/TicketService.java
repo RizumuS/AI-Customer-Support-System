@@ -1,4 +1,3 @@
-
 package com.aisupport.service;
 
 import com.aisupport.dao.TicketDAO;
@@ -86,6 +85,26 @@ public class TicketService {
         }
 
         return ticketDAO.getTicketsByCustomer(customerId);
+    }
+
+    // Get a specific ticket belonging to a customer
+    public Ticket getCustomerTicket(
+            int ticketId,
+            int customerId
+    ) throws SQLException {
+
+        if (ticketId <= 0) {
+            throw new IllegalArgumentException("Invalid ticket ID.");
+        }
+
+        if (customerId <= 0) {
+            throw new IllegalArgumentException("Invalid customer ID.");
+        }
+
+        return ticketDAO.getTicketByCustomer(
+                ticketId,
+                customerId
+        );
     }
 
     // Get all tickets

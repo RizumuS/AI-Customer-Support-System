@@ -259,6 +259,47 @@ public class TicketDAO {
         }
     }
 
+
+    // Get a specific ticket belonging to a particular customer
+public Ticket getTicketByCustomer(
+        int ticketId,
+        int customerId
+) throws SQLException {
+
+    String sql = """
+        SELECT
+            t.*,
+            c.category_name AS category_name,
+            u.full_name AS assigned_agent_name
+        FROM tickets t
+        LEFT JOIN categories c
+            ON t.category_id = c.category_id
+        LEFT JOIN agents a
+            ON t.assigned_agent_id = a.agent_id
+        LEFT JOIN users u
+            ON a.user_id = u.user_id
+        WHERE t.ticket_id = ?
+        AND t.customer_id = ?
+        """;
+
+    try (Connection connection = DBConnection.getConnection();
+         PreparedStatement statement =
+                 connection.prepareStatement(sql)) {
+
+        statement.setInt(1, ticketId);
+        statement.setInt(2, customerId);
+
+        try (ResultSet result = statement.executeQuery()) {
+
+            if (result.next()) {
+                return mapTicket(result);
+            }
+        }
+    }
+
+    return null;
+}
+
     // Get all tickets belonging to a particular customer
     public List<Ticket> getTicketsByCustomer(
             int customerId

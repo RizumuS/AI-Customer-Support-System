@@ -149,7 +149,11 @@
             <% for (Ticket ticket : tickets) { %>
 
                 <tr>
-                    <td><%= ticket.getTicketNumber() %></td>
+                    <td>
+    <a href="<%= request.getContextPath() %>/customer/ticket?id=<%= ticket.getTicketId() %>">
+        <%= ticket.getTicketNumber() %>
+    </a>
+</td>
 
                     <td><%= ticket.getSubject() %></td>
 

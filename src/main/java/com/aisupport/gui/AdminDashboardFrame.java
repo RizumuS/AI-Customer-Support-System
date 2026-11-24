@@ -101,11 +101,8 @@ public class AdminDashboardFrame extends JFrame {
 );
 
         manageAgentsButton.addActionListener(e ->
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Agent management will be implemented later."
-                )
-        );
+        new AdminAgentsFrame(loggedInUser).setVisible(true)
+);
 
         JPanel managementButtonsPanel =
                 new JPanel(new GridLayout(1, 3, 15, 15));

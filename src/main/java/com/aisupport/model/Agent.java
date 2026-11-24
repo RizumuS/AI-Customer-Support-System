@@ -1,4 +1,3 @@
-
 package com.aisupport.model;
 
 public class Agent {
@@ -9,6 +8,7 @@ public class Agent {
     private String email;
     private String department;
     private String availability;
+    private boolean active;
 
     // Workload statistics
     private int totalTickets;
@@ -83,7 +83,16 @@ public class Agent {
         this.availability = availability;
     }
 
-    // Total assigned tickets
+    // Account status
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    // Workload statistics
     public int getTotalTickets() {
         return totalTickets;
     }
@@ -92,7 +101,6 @@ public class Agent {
         this.totalTickets = totalTickets;
     }
 
-    // Open tickets
     public int getOpenTickets() {
         return openTickets;
     }
@@ -101,7 +109,6 @@ public class Agent {
         this.openTickets = openTickets;
     }
 
-    // In-progress tickets
     public int getInProgressTickets() {
         return inProgressTickets;
     }
@@ -110,7 +117,6 @@ public class Agent {
         this.inProgressTickets = inProgressTickets;
     }
 
-    // Resolved tickets
     public int getResolvedTickets() {
         return resolvedTickets;
     }

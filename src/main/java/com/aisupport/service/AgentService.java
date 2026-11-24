@@ -1,4 +1,3 @@
-
 package com.aisupport.service;
 
 import com.aisupport.dao.AgentDAO;
@@ -19,13 +18,18 @@ public class AgentService {
         this.agentDAO = new AgentDAO();
     }
 
-    // Get all active agents
+    // Get all active agents.
     public List<Agent> getAllAgents() throws SQLException {
-
         return agentDAO.getAllAgents();
     }
 
-    // Get an agent by ID
+    // Get all agents, including inactive accounts.
+    // Used by the admin dashboard.
+    public List<Agent> getAllAgentsForAdmin() throws SQLException {
+        return agentDAO.getAllAgentsForAdmin();
+    }
+
+    // Get an active agent by ID.
     public Agent getAgentById(int agentId) throws SQLException {
 
         if (agentId <= 0) {
@@ -37,7 +41,7 @@ public class AgentService {
         return agentDAO.getAgentById(agentId);
     }
 
-    // Update agent availability
+    // Update agent availability.
     public boolean updateAvailability(
             int agentId,
             String availability

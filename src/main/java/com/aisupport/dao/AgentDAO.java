@@ -12,8 +12,21 @@ import java.util.List;
 
 public class AgentDAO {
 
-    // Retrieve all active agents with workload statistics
+    // Retrieve active agents only.
+    // Used by existing agent assignment functionality.
     public List<Agent> getAllAgents() throws SQLException {
+        return getAgents(true);
+    }
+
+    // Retrieve all agents, including inactive accounts.
+    // Used by the administrator.
+    public List<Agent> getAllAgentsForAdmin() throws SQLException {
+        return getAgents(false);
+    }
+
+    // Shared method for retrieving agents and workload statistics.
+    private List<Agent> getAgents(boolean activeOnly)
+            throws SQLException {
 
         String sql = """
                 SELECT
@@ -23,6 +36,7 @@ public class AgentDAO {
                     u.email,
                     a.department,
                     a.availability,
+                    u.is_active,
 
                     COUNT(t.ticket_id) AS total_tickets,
 
@@ -49,7 +63,7 @@ public class AgentDAO {
                 LEFT JOIN tickets t
                     ON a.agent_id = t.assigned_agent_id
 
-                WHERE u.is_active = TRUE
+                """ + (activeOnly ? "WHERE u.is_active = TRUE " : "") + """
 
                 GROUP BY
                     a.agent_id,
@@ -57,7 +71,8 @@ public class AgentDAO {
                     u.full_name,
                     u.email,
                     a.department,
-                    a.availability
+                    a.availability,
+                    u.is_active
 
                 ORDER BY u.full_name ASC
                 """;
@@ -70,17 +85,14 @@ public class AgentDAO {
              ResultSet result = statement.executeQuery()) {
 
             while (result.next()) {
-
-                Agent agent = mapAgent(result);
-
-                agents.add(agent);
+                agents.add(mapAgent(result));
             }
         }
 
         return agents;
     }
 
-    // Retrieve one agent using agent ID
+    // Retrieve one active agent using agent ID.
     public Agent getAgentById(int agentId) throws SQLException {
 
         String sql = """
@@ -91,6 +103,7 @@ public class AgentDAO {
                     u.email,
                     a.department,
                     a.availability,
+                    u.is_active,
 
                     COUNT(t.ticket_id) AS total_tickets,
 
@@ -126,7 +139,8 @@ public class AgentDAO {
                     u.full_name,
                     u.email,
                     a.department,
-                    a.availability
+                    a.availability,
+                    u.is_active
                 """;
 
         try (Connection connection = DBConnection.getConnection();
@@ -138,7 +152,6 @@ public class AgentDAO {
             try (ResultSet result = statement.executeQuery()) {
 
                 if (result.next()) {
-
                     return mapAgent(result);
                 }
             }
@@ -147,7 +160,7 @@ public class AgentDAO {
         return null;
     }
 
-    // Update an agent's availability
+    // Update an agent's availability.
     public boolean updateAvailability(
             int agentId,
             String availability
@@ -170,7 +183,7 @@ public class AgentDAO {
         }
     }
 
-    // Convert database result into an Agent object
+    // Convert database result into an Agent object.
     private Agent mapAgent(ResultSet result) throws SQLException {
 
         Agent agent = new Agent();
@@ -181,6 +194,7 @@ public class AgentDAO {
         agent.setEmail(result.getString("email"));
         agent.setDepartment(result.getString("department"));
         agent.setAvailability(result.getString("availability"));
+        agent.setActive(result.getBoolean("is_active"));
 
         agent.setTotalTickets(
                 result.getInt("total_tickets")

@@ -32,7 +32,7 @@ public class AdminUsersFrame extends JFrame {
         this.userService = new UserService();
 
         setTitle("Manage Users");
-        setSize(1050, 650);
+        setSize(1100, 680);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -172,8 +172,6 @@ public class AdminUsersFrame extends JFrame {
                 Color.WHITE
         );
 
-        usersTable.setAutoCreateRowSorter(true);
-
         rowSorter = new TableRowSorter<>(tableModel);
 
         usersTable.setRowSorter(rowSorter);
@@ -190,12 +188,46 @@ public class AdminUsersFrame extends JFrame {
 
         mainPanel.add(centerPanel, BorderLayout.CENTER);
 
-        // Footer
+        // Footer and account management buttons
         JPanel footerPanel = new JPanel(
-                new FlowLayout(FlowLayout.RIGHT, 10, 5)
+                new BorderLayout()
         );
 
         footerPanel.setOpaque(false);
+
+        JPanel accountButtonsPanel = new JPanel(
+                new FlowLayout(FlowLayout.LEFT, 10, 5)
+        );
+
+        accountButtonsPanel.setOpaque(false);
+
+        JButton activateButton = new JButton("Activate Account");
+        JButton deactivateButton = new JButton("Deactivate Account");
+
+        activateButton.setBackground(new Color(40, 145, 90));
+        activateButton.setForeground(Color.WHITE);
+        activateButton.setFocusPainted(false);
+
+        deactivateButton.setBackground(new Color(190, 65, 65));
+        deactivateButton.setForeground(Color.WHITE);
+        deactivateButton.setFocusPainted(false);
+
+        activateButton.addActionListener(
+                e -> changeSelectedUserStatus(true)
+        );
+
+        deactivateButton.addActionListener(
+                e -> changeSelectedUserStatus(false)
+        );
+
+        accountButtonsPanel.add(activateButton);
+        accountButtonsPanel.add(deactivateButton);
+
+        JPanel navigationButtonsPanel = new JPanel(
+                new FlowLayout(FlowLayout.RIGHT, 10, 5)
+        );
+
+        navigationButtonsPanel.setOpaque(false);
 
         JButton refreshButton = new JButton("Refresh");
         JButton closeButton = new JButton("Close");
@@ -204,8 +236,18 @@ public class AdminUsersFrame extends JFrame {
 
         closeButton.addActionListener(e -> dispose());
 
-        footerPanel.add(refreshButton);
-        footerPanel.add(closeButton);
+        navigationButtonsPanel.add(refreshButton);
+        navigationButtonsPanel.add(closeButton);
+
+        footerPanel.add(
+                accountButtonsPanel,
+                BorderLayout.WEST
+        );
+
+        footerPanel.add(
+                navigationButtonsPanel,
+                BorderLayout.EAST
+        );
 
         mainPanel.add(footerPanel, BorderLayout.SOUTH);
 
@@ -309,6 +351,146 @@ public class AdminUsersFrame extends JFrame {
             JOptionPane.showMessageDialog(
                     this,
                     "Unable to load users:\n"
+                            + exception.getMessage(),
+                    "Database Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    // Activate or deactivate selected user
+    private void changeSelectedUserStatus(boolean active) {
+
+        // Verify administrator role
+        if (loggedInUser == null ||
+                !"ADMIN".equalsIgnoreCase(loggedInUser.getRole())) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Only administrators can manage user accounts.",
+                    "Access Denied",
+                    JOptionPane.ERROR_MESSAGE
+            );
+
+            return;
+        }
+
+        int selectedRow = usersTable.getSelectedRow();
+
+        if (selectedRow == -1) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Please select a user account first.",
+                    "No User Selected",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            return;
+        }
+
+        // Convert sorted/filtered table row to model row
+        int modelRow = usersTable.convertRowIndexToModel(
+                selectedRow
+        );
+
+        int userId = (int) tableModel.getValueAt(
+                modelRow, 0
+        );
+
+        String fullName = tableModel.getValueAt(
+                modelRow, 1
+        ).toString();
+
+        String currentStatus = tableModel.getValueAt(
+                modelRow, 5
+        ).toString();
+
+        // Prevent unnecessary status updates
+        if (active && currentStatus.equals("ACTIVE")) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "This account is already active.",
+                    "Account Status",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+            return;
+        }
+
+        if (!active && currentStatus.equals("INACTIVE")) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "This account is already inactive.",
+                    "Account Status",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+            return;
+        }
+
+        // Confirmation
+        String action = active ? "activate" : "deactivate";
+
+        int confirmation = JOptionPane.showConfirmDialog(
+                this,
+                "Are you sure you want to " + action
+                        + " the account of " + fullName + "?",
+                "Confirm Account Status Change",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+
+        if (confirmation != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try {
+
+            boolean updated = userService.updateUserStatus(
+                    userId,
+                    active,
+                    loggedInUser.getUserId()
+            );
+
+            if (updated) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Account successfully "
+                                + (active ? "activated." : "deactivated."),
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+
+                loadUsers();
+
+            } else {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Unable to update the account status.",
+                        "Update Failed",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
+
+        } catch (IllegalArgumentException exception) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    exception.getMessage(),
+                    "Account Management",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (Exception exception) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "An error occurred while updating the account:\n"
                             + exception.getMessage(),
                     "Database Error",
                     JOptionPane.ERROR_MESSAGE

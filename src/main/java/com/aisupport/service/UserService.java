@@ -144,6 +144,55 @@ public class UserService {
         return userDAO.getAllUsers();
     }
 
+    // Activate or deactivate a user account
+    public boolean updateUserStatus(
+            int userId,
+            boolean active,
+            int loggedInAdminId
+    ) throws SQLException {
+
+        if (userId <= 0) {
+
+            throw new IllegalArgumentException(
+                    "Invalid user ID."
+            );
+        }
+
+        if (loggedInAdminId <= 0) {
+
+            throw new IllegalArgumentException(
+                    "Invalid administrator ID."
+            );
+        }
+
+        // Prevent administrator from deactivating their own account
+        if (userId == loggedInAdminId && !active) {
+
+            throw new IllegalArgumentException(
+                    "You cannot deactivate your own account."
+            );
+        }
+
+        User targetUser = null;
+
+        for (User user : userDAO.getAllUsers()) {
+
+            if (user.getUserId() == userId) {
+                targetUser = user;
+                break;
+            }
+        }
+
+        if (targetUser == null) {
+
+            throw new IllegalArgumentException(
+                    "User account not found."
+            );
+        }
+
+        return userDAO.updateUserStatus(userId, active);
+    }
+
     // Common validation methods
     private void validateName(String name) {
 

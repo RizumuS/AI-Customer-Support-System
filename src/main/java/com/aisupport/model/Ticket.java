@@ -1,3 +1,4 @@
+
 package com.aisupport.model;
 
 import java.sql.Timestamp;
@@ -136,10 +137,10 @@ public class Ticket {
     }
 
     public String getAssignedAgentName() {
-    return assignedAgentName;
-}
+        return assignedAgentName;
+    }
 
-public void setAssignedAgentName(String assignedAgentName) {
-    this.assignedAgentName = assignedAgentName;
-}
+    public void setAssignedAgentName(String assignedAgentName) {
+        this.assignedAgentName = assignedAgentName;
+    }
 }

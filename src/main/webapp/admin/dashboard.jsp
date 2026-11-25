@@ -134,22 +134,28 @@
     <div class="cards">
 
         <div class="card">
-            <h3>User Management</h3>
-            <p>View registered customers and manage user accounts.</p>
-            <a href="#">Manage Users</a>
-        </div>
+    <h3>User Management</h3>
+    <p>View registered customers and manage user accounts.</p>
+    <a href="${pageContext.request.contextPath}/admin/users">
+        Manage Users
+    </a>
+</div>
 
         <div class="card">
             <h3>Agent Management</h3>
             <p>Manage support agents and monitor their availability.</p>
-            <a href="#">Manage Agents</a>
+            <a href="${pageContext.request.contextPath}/admin/agents">
+    Manage Agents
+</a>
         </div>
 
         <div class="card">
-            <h3>Ticket Management</h3>
-            <p>View support tickets and monitor their progress.</p>
-            <a href="#">Manage Tickets</a>
-        </div>
+    <h3>Ticket Management</h3>
+    <p>View support tickets and monitor their progress.</p>
+    <a href="${pageContext.request.contextPath}/admin/tickets">
+        Manage Tickets
+    </a>
+</div>
 
     </div>
 

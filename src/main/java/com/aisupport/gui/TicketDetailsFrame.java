@@ -538,55 +538,92 @@ public class TicketDetailsFrame extends JFrame {
     }
 
     // Load agents into dropdown
-    private void loadAgents() {
 
-        try {
+// Load available agents and preserve the existing assignment.
+private void loadAgents() {
 
-            List<Agent> agents = agentService.getAllAgents();
+    try {
 
-            agentComboBox.removeAllItems();
+        // Retrieve only active, available agents.
+        List<Agent> agents =
+                agentService.getAvailableAgents();
 
-            for (Agent agent : agents) {
-                agentComboBox.addItem(agent);
+        agentComboBox.removeAllItems();
+
+        // Add available agents to the dropdown.
+        for (Agent agent : agents) {
+            agentComboBox.addItem(agent);
+        }
+
+        // Preserve the currently assigned agent,
+        // even if that agent is BUSY or OFFLINE.
+        if (ticket.getAssignedAgentId() != null) {
+
+            boolean currentAgentFound = false;
+
+            for (int i = 0;
+                 i < agentComboBox.getItemCount();
+                 i++) {
+
+                Agent agent =
+                        agentComboBox.getItemAt(i);
+
+                if (agent.getAgentId()
+                        == ticket.getAssignedAgentId()) {
+
+                    currentAgentFound = true;
+                    agentComboBox.setSelectedIndex(i);
+                    break;
+                }
             }
 
-            // Select the currently assigned agent
-            if (ticket.getAssignedAgentId() != null) {
+            // Retrieve the existing agent if they are not
+            // in the AVAILABLE agents list.
+            if (!currentAgentFound) {
 
-                for (int i = 0; i < agentComboBox.getItemCount(); i++) {
+                List<Agent> allAgents =
+                        agentService.getAllAgentsForAdmin();
 
-                    Agent agent = agentComboBox.getItemAt(i);
+                for (Agent agent : allAgents) {
 
                     if (agent.getAgentId()
                             == ticket.getAssignedAgentId()) {
 
-                        agentComboBox.setSelectedIndex(i);
+                        agentComboBox.addItem(agent);
+
+                        agentComboBox.setSelectedItem(agent);
+
+                        currentAgentFound = true;
                         break;
                     }
                 }
             }
+        }
 
-            if (agents.isEmpty()) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "No active agents were found.",
-                        "No Agents Available",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-            }
-
-        } catch (Exception exception) {
+        // Show this message only when there is no existing
+        // assignment and no available agent.
+        if (agents.isEmpty() &&
+                ticket.getAssignedAgentId() == null) {
 
             JOptionPane.showMessageDialog(
                     this,
-                    "Unable to load agents:\n"
-                            + exception.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
+                    "No available agents were found.",
+                    "No Agents Available",
+                    JOptionPane.INFORMATION_MESSAGE
             );
         }
+
+    } catch (Exception exception) {
+
+        JOptionPane.showMessageDialog(
+                this,
+                "Unable to load agents:\n"
+                        + exception.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+        );
     }
+}
 
     // Assign ticket to selected agent
     private void assignTicket() {
@@ -605,6 +642,29 @@ public class TicketDetailsFrame extends JFrame {
 
             return;
         }
+
+        // Prevent assigning a new ticket to a BUSY or OFFLINE agent.
+// Allow the existing assignment to remain unchanged.
+boolean isCurrentAssignment =
+        ticket.getAssignedAgentId() != null &&
+        ticket.getAssignedAgentId()
+                == selectedAgent.getAgentId();
+
+if (!"AVAILABLE".equalsIgnoreCase(
+        selectedAgent.getAvailability()) &&
+        !isCurrentAssignment) {
+
+    JOptionPane.showMessageDialog(
+            this,
+            "This agent is currently "
+                    + selectedAgent.getAvailability()
+                    + " and cannot receive new assignments.",
+            "Agent Unavailable",
+            JOptionPane.WARNING_MESSAGE
+    );
+
+    return;
+}
 
         if (ticket.getAssignedAgentId() != null &&
                 ticket.getAssignedAgentId()

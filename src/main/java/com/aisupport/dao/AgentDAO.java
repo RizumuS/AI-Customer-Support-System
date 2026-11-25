@@ -18,6 +18,74 @@ public class AgentDAO {
         return getAgents(true);
     }
 
+    // Retrieve active agents who are currently available for new assignments.
+public List<Agent> getAvailableAgents() throws SQLException {
+
+    String sql = """
+            SELECT
+                a.agent_id,
+                a.user_id,
+                u.full_name,
+                u.email,
+                a.department,
+                a.availability,
+                u.is_active,
+
+                COUNT(t.ticket_id) AS total_tickets,
+
+                SUM(
+                    CASE WHEN t.status = 'OPEN'
+                    THEN 1 ELSE 0 END
+                ) AS open_tickets,
+
+                SUM(
+                    CASE WHEN t.status = 'IN_PROGRESS'
+                    THEN 1 ELSE 0 END
+                ) AS in_progress_tickets,
+
+                SUM(
+                    CASE WHEN t.status = 'RESOLVED'
+                    THEN 1 ELSE 0 END
+                ) AS resolved_tickets
+
+            FROM agents a
+
+            INNER JOIN users u
+                ON a.user_id = u.user_id
+
+            LEFT JOIN tickets t
+                ON a.agent_id = t.assigned_agent_id
+
+            WHERE u.is_active = TRUE
+            AND a.availability = 'AVAILABLE'
+
+            GROUP BY
+                a.agent_id,
+                a.user_id,
+                u.full_name,
+                u.email,
+                a.department,
+                a.availability,
+                u.is_active
+
+            ORDER BY u.full_name ASC
+            """;
+
+    List<Agent> agents = new ArrayList<>();
+
+    try (Connection connection = DBConnection.getConnection();
+         PreparedStatement statement =
+                 connection.prepareStatement(sql);
+         ResultSet result = statement.executeQuery()) {
+
+        while (result.next()) {
+            agents.add(mapAgent(result));
+        }
+    }
+
+    return agents;
+}
+
     // Retrieve all agents, including inactive accounts.
     // Used by the administrator.
     public List<Agent> getAllAgentsForAdmin() throws SQLException {
@@ -159,6 +227,74 @@ public class AgentDAO {
 
         return null;
     }
+
+    // Retrieve an active agent using the associated user ID.
+public Agent getAgentByUserId(int userId) throws SQLException {
+
+    String sql = """
+            SELECT
+                a.agent_id,
+                a.user_id,
+                u.full_name,
+                u.email,
+                a.department,
+                a.availability,
+                u.is_active,
+
+                COUNT(t.ticket_id) AS total_tickets,
+
+                SUM(
+                    CASE WHEN t.status = 'OPEN'
+                    THEN 1 ELSE 0 END
+                ) AS open_tickets,
+
+                SUM(
+                    CASE WHEN t.status = 'IN_PROGRESS'
+                    THEN 1 ELSE 0 END
+                ) AS in_progress_tickets,
+
+                SUM(
+                    CASE WHEN t.status = 'RESOLVED'
+                    THEN 1 ELSE 0 END
+                ) AS resolved_tickets
+
+            FROM agents a
+
+            INNER JOIN users u
+                ON a.user_id = u.user_id
+
+            LEFT JOIN tickets t
+                ON a.agent_id = t.assigned_agent_id
+
+            WHERE a.user_id = ?
+            AND u.is_active = TRUE
+
+            GROUP BY
+                a.agent_id,
+                a.user_id,
+                u.full_name,
+                u.email,
+                a.department,
+                a.availability,
+                u.is_active
+            """;
+
+    try (Connection connection = DBConnection.getConnection();
+         PreparedStatement statement =
+                 connection.prepareStatement(sql)) {
+
+        statement.setInt(1, userId);
+
+        try (ResultSet result = statement.executeQuery()) {
+
+            if (result.next()) {
+                return mapAgent(result);
+            }
+        }
+    }
+
+    return null;
+}
 
     // Update an agent's availability.
     public boolean updateAvailability(

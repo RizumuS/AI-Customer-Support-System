@@ -58,7 +58,10 @@
 
         .cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            grid-template-columns: repeat(
+                auto-fit,
+                minmax(230px, 1fr)
+            );
             gap: 20px;
         }
 
@@ -87,6 +90,57 @@
             color: white;
             text-decoration: none;
             border-radius: 5px;
+        }
+
+        .availability {
+            margin-top: 30px;
+        }
+
+        .availability select {
+            width: 100%;
+            max-width: 350px;
+            padding: 11px;
+            margin-top: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 15px;
+        }
+
+        .availability button {
+            display: block;
+            margin-top: 15px;
+            padding: 11px 20px;
+            background: #198754;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .availability button:hover {
+            background: #146c43;
+        }
+
+        .current-status {
+            font-weight: bold;
+            color: #183b35;
+        }
+
+        .success-message {
+            background: #d1e7dd;
+            color: #0f5132;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #842029;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
         }
 
         .account {
@@ -128,32 +182,123 @@
             <c:out value="${sessionScope.loggedInUser.fullName}"/>
         </h1>
 
-        <p>Manage your assigned support requests and agent activities.</p>
+        <p>
+            Manage your assigned support requests and agent activities.
+        </p>
     </div>
+
+    <!-- Success and error messages -->
+
+    <c:if test="${param.availabilityUpdated == 'true'}">
+        <div class="success-message">
+            Your availability has been updated successfully.
+        </div>
+    </c:if>
+
+    <c:if test="${param.error == 'invalidAvailability'}">
+        <div class="error-message">
+            Invalid availability selected. Please choose a valid option.
+        </div>
+    </c:if>
 
     <div class="cards">
 
         <div class="card">
             <h3>Assigned Tickets</h3>
-            <p>View and manage the support tickets assigned to you.</p>
-            <a href="#">View Tickets</a>
+
+            <p>
+                View and manage the support tickets assigned to you.
+            </p>
+
+            <a href="${pageContext.request.contextPath}/agent/tickets">
+                View Tickets
+            </a>
         </div>
 
         <div class="card">
             <h3>Ticket Management</h3>
-            <p>Update ticket statuses and communicate with customers.</p>
-            <a href="#">Manage Tickets</a>
+
+            <p>
+                Update ticket statuses and communicate with customers.
+            </p>
+
+            <a href="${pageContext.request.contextPath}/agent/tickets">
+                Manage Tickets
+            </a>
         </div>
 
         <div class="card">
             <h3>Availability</h3>
-            <p>Manage your availability for handling incoming support requests.</p>
-            <a href="#">Manage Availability</a>
+
+            <p>
+                Manage your availability for handling incoming support requests.
+            </p>
+
+            <p>
+                Current Status:
+                <span class="current-status">
+                    <c:out value="${agent.availability}"/>
+                </span>
+            </p>
         </div>
 
     </div>
 
+    <!-- Availability Management Form -->
+
+    <div class="card availability">
+
+        <h3>Update Your Availability</h3>
+
+        <p>
+            Select your current availability status.
+        </p>
+
+        <form
+            action="${pageContext.request.contextPath}/agent/availability"
+            method="POST">
+
+            <label for="availability">
+                Availability Status
+            </label>
+
+            <select id="availability" name="availability" required>
+
+                <option value="AVAILABLE"
+                    <c:if test="${agent.availability == 'AVAILABLE'}">
+                        selected
+                    </c:if>>
+                    Available
+                </option>
+
+                <option value="BUSY"
+                    <c:if test="${agent.availability == 'BUSY'}">
+                        selected
+                    </c:if>>
+                    Busy
+                </option>
+
+                <option value="OFFLINE"
+                    <c:if test="${agent.availability == 'OFFLINE'}">
+                        selected
+                    </c:if>>
+                    Offline
+                </option>
+
+            </select>
+
+            <button type="submit">
+                Update Availability
+            </button>
+
+        </form>
+
+    </div>
+
+    <!-- Agent Information -->
+
     <div class="card account">
+
         <h3>Agent Information</h3>
 
         <p>
@@ -170,6 +315,12 @@
             <strong>Role:</strong>
             <c:out value="${sessionScope.loggedInUser.role}"/>
         </p>
+
+        <p>
+            <strong>Department:</strong>
+            <c:out value="${agent.department}"/>
+        </p>
+
     </div>
 
 </div>

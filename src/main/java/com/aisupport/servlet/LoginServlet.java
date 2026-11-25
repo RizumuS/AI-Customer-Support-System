@@ -115,12 +115,12 @@ protected void doGet(
 
             } else if ("AGENT".equalsIgnoreCase(role)) {
 
-                response.sendRedirect(
-                        request.getContextPath() +
-                        "/agent/dashboard.jsp"
-                );
+    response.sendRedirect(
+            request.getContextPath() +
+            "/agent/dashboard"
+    );
 
-            } else if ("ADMIN".equalsIgnoreCase(role)) {
+} else if ("ADMIN".equalsIgnoreCase(role)) {
 
                 response.sendRedirect(
                         request.getContextPath() +

@@ -107,6 +107,31 @@ public class TicketService {
         );
     }
 
+
+    // Get a specific ticket assigned to a particular agent
+public Ticket getAgentTicket(
+        int ticketId,
+        int agentId
+) throws SQLException {
+
+    if (ticketId <= 0) {
+        throw new IllegalArgumentException(
+                "Invalid ticket ID."
+        );
+    }
+
+    if (agentId <= 0) {
+        throw new IllegalArgumentException(
+                "Invalid agent ID."
+        );
+    }
+
+    return ticketDAO.getTicketByAgent(
+            ticketId,
+            agentId
+    );
+}
+
     // Get all tickets
     public List<Ticket> getAllTickets() throws SQLException {
         return ticketDAO.getAllTickets();
@@ -150,6 +175,88 @@ public class TicketService {
                 changedBy
         );
     }
+
+
+    // Update ticket priority
+    public boolean updateTicketPriority(
+            int ticketId,
+            String newPriority,
+            int changedBy
+    ) throws SQLException {
+
+        if (ticketId <= 0) {
+            throw new IllegalArgumentException(
+                    "Invalid ticket ID."
+            );
+        }
+
+        if (changedBy <= 0) {
+            throw new IllegalArgumentException(
+                    "Invalid user ID."
+            );
+        }
+
+        if (newPriority == null ||
+                !VALID_PRIORITIES.contains(
+                        newPriority.toUpperCase()
+                )) {
+
+            throw new IllegalArgumentException(
+                    "Invalid ticket priority."
+            );
+        }
+
+        return ticketDAO.updateTicketPriority(
+                ticketId,
+                newPriority.toUpperCase(),
+                changedBy
+        );
+    }
+
+
+
+    // Update ticket status for a ticket assigned to a particular agent
+    public boolean updateAgentTicketStatus(
+            int ticketId,
+            int agentId,
+            String newStatus,
+            int changedBy
+    ) throws SQLException {
+
+        if (ticketId <= 0) {
+            throw new IllegalArgumentException(
+                    "Invalid ticket ID."
+            );
+        }
+
+        if (agentId <= 0) {
+            throw new IllegalArgumentException(
+                    "Invalid agent ID."
+            );
+        }
+
+        if (changedBy <= 0) {
+            throw new IllegalArgumentException(
+                    "Invalid user ID."
+            );
+        }
+
+        if (newStatus == null ||
+                !VALID_STATUSES.contains(newStatus.toUpperCase())) {
+
+            throw new IllegalArgumentException(
+                    "Invalid ticket status."
+            );
+        }
+
+        return ticketDAO.updateAgentTicketStatus(
+                ticketId,
+                agentId,
+                newStatus.toUpperCase(),
+                changedBy
+        );
+    }
+
 
     // Assign a ticket to an agent
     public boolean assignTicketToAgent(

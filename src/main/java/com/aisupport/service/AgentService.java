@@ -23,6 +23,11 @@ public class AgentService {
         return agentDAO.getAllAgents();
     }
 
+    // Get active agents who are currently available for new assignments.
+public List<Agent> getAvailableAgents() throws SQLException {
+    return agentDAO.getAvailableAgents();
+}
+
     // Get all agents, including inactive accounts.
     // Used by the admin dashboard.
     public List<Agent> getAllAgentsForAdmin() throws SQLException {
@@ -40,6 +45,19 @@ public class AgentService {
 
         return agentDAO.getAgentById(agentId);
     }
+
+
+    // Get an active agent using the associated user ID.
+public Agent getAgentByUserId(int userId) throws SQLException {
+
+    if (userId <= 0) {
+        throw new IllegalArgumentException(
+                "Invalid user ID."
+        );
+    }
+
+    return agentDAO.getAgentByUserId(userId);
+}
 
     // Update agent availability.
     public boolean updateAvailability(

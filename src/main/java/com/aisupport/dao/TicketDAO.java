@@ -300,6 +300,47 @@ public Ticket getTicketByCustomer(
     return null;
 }
 
+
+// Get a specific ticket assigned to a particular agent
+public Ticket getTicketByAgent(
+        int ticketId,
+        int agentId
+) throws SQLException {
+
+    String sql = """
+            SELECT
+                t.*,
+                c.category_name AS category_name,
+                u.full_name AS assigned_agent_name
+            FROM tickets t
+            LEFT JOIN categories c
+                ON t.category_id = c.category_id
+            LEFT JOIN agents a
+                ON t.assigned_agent_id = a.agent_id
+            LEFT JOIN users u
+                ON a.user_id = u.user_id
+            WHERE t.ticket_id = ?
+            AND t.assigned_agent_id = ?
+            """;
+
+    try (Connection connection = DBConnection.getConnection();
+         PreparedStatement statement =
+                 connection.prepareStatement(sql)) {
+
+        statement.setInt(1, ticketId);
+        statement.setInt(2, agentId);
+
+        try (ResultSet result = statement.executeQuery()) {
+
+            if (result.next()) {
+                return mapTicket(result);
+            }
+        }
+    }
+
+    return null;
+}
+
     // Get all tickets belonging to a particular customer
     public List<Ticket> getTicketsByCustomer(
             int customerId
@@ -525,6 +566,125 @@ public Ticket getTicketByCustomer(
     }
 
 
+
+// Update ticket status only if it is assigned to the specified agent.
+public boolean updateAgentTicketStatus(
+        int ticketId,
+        int agentId,
+        String newStatus,
+        int changedBy
+) throws SQLException {
+
+    String selectSql = """
+            SELECT status
+            FROM tickets
+            WHERE ticket_id = ?
+            AND assigned_agent_id = ?
+            FOR UPDATE
+            """;
+
+    String updateSql = """
+            UPDATE tickets
+            SET status = ?,
+                updated_at = CURRENT_TIMESTAMP,
+                resolved_at = CASE
+                    WHEN ? = 'RESOLVED'
+                    THEN CURRENT_TIMESTAMP
+                    ELSE NULL
+                END
+            WHERE ticket_id = ?
+            AND assigned_agent_id = ?
+            """;
+
+    String historySql = """
+            INSERT INTO ticket_history
+            (
+                ticket_id,
+                changed_by,
+                field_changed,
+                old_value,
+                new_value
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """;
+
+    try (Connection connection = DBConnection.getConnection()) {
+
+        connection.setAutoCommit(false);
+
+        try {
+
+            String oldStatus;
+
+            // Verify assignment and retrieve current status.
+            try (PreparedStatement statement =
+                         connection.prepareStatement(selectSql)) {
+
+                statement.setInt(1, ticketId);
+                statement.setInt(2, agentId);
+
+                try (ResultSet result = statement.executeQuery()) {
+
+                    if (!result.next()) {
+                        connection.rollback();
+                        return false;
+                    }
+
+                    oldStatus = result.getString("status");
+                }
+            }
+
+            // No history entry is needed if status is unchanged.
+            if (oldStatus.equalsIgnoreCase(newStatus)) {
+                connection.commit();
+                return true;
+            }
+
+            // Update only the ticket assigned to this agent.
+            try (PreparedStatement statement =
+                         connection.prepareStatement(updateSql)) {
+
+                statement.setString(1, newStatus);
+                statement.setString(2, newStatus);
+                statement.setInt(3, ticketId);
+                statement.setInt(4, agentId);
+
+                if (statement.executeUpdate() == 0) {
+                    connection.rollback();
+                    return false;
+                }
+            }
+
+            // Record the status change.
+            try (PreparedStatement statement =
+                         connection.prepareStatement(historySql)) {
+
+                statement.setInt(1, ticketId);
+                statement.setInt(2, changedBy);
+                statement.setString(3, "STATUS");
+                statement.setString(4, oldStatus);
+                statement.setString(5, newStatus);
+
+                statement.executeUpdate();
+            }
+
+            connection.commit();
+            return true;
+
+        } catch (SQLException | RuntimeException e) {
+
+            connection.rollback();
+            throw e;
+
+        } finally {
+
+            connection.setAutoCommit(true);
+        }
+    }
+}
+
+
+
     // Assign a ticket to an agent and record the change in history
     public boolean assignTicketToAgent(
             int ticketId,
@@ -651,6 +811,113 @@ public Ticket getTicketByCustomer(
             }
         }
     }
+
+
+    // Update ticket priority and record the change in history
+    public boolean updateTicketPriority(
+            int ticketId,
+            String newPriority,
+            int changedBy
+    ) throws SQLException {
+
+        String selectSql = """
+                SELECT priority
+                FROM tickets
+                WHERE ticket_id = ?
+                FOR UPDATE
+                """;
+
+        String updateSql = """
+                UPDATE tickets
+                SET priority = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE ticket_id = ?
+                """;
+
+        String historySql = """
+                INSERT INTO ticket_history
+                (
+                    ticket_id,
+                    changed_by,
+                    field_changed,
+                    old_value,
+                    new_value
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """;
+
+        try (Connection connection = DBConnection.getConnection()) {
+
+            connection.setAutoCommit(false);
+
+            try {
+
+                String oldPriority;
+
+                // Retrieve the existing priority.
+                try (PreparedStatement statement =
+                             connection.prepareStatement(selectSql)) {
+
+                    statement.setInt(1, ticketId);
+
+                    try (ResultSet result = statement.executeQuery()) {
+
+                        if (!result.next()) {
+                            connection.rollback();
+                            return false;
+                        }
+
+                        oldPriority = result.getString("priority");
+                    }
+                }
+
+                // Avoid unnecessary history entries.
+                if (oldPriority.equalsIgnoreCase(newPriority)) {
+                    connection.commit();
+                    return true;
+                }
+
+                // Update the ticket priority.
+                try (PreparedStatement statement =
+                             connection.prepareStatement(updateSql)) {
+
+                    statement.setString(1, newPriority);
+                    statement.setInt(2, ticketId);
+
+                    if (statement.executeUpdate() == 0) {
+                        connection.rollback();
+                        return false;
+                    }
+                }
+
+                // Record the priority change.
+                try (PreparedStatement statement =
+                             connection.prepareStatement(historySql)) {
+
+                    statement.setInt(1, ticketId);
+                    statement.setInt(2, changedBy);
+                    statement.setString(3, "PRIORITY");
+                    statement.setString(4, oldPriority);
+                    statement.setString(5, newPriority);
+
+                    statement.executeUpdate();
+                }
+
+                connection.commit();
+                return true;
+
+            } catch (SQLException | RuntimeException e) {
+
+                connection.rollback();
+                throw e;
+
+            } finally {
+
+                connection.setAutoCommit(true);
+            }
+        }
+    }
+
 
 
     // Convert database result into a Ticket object

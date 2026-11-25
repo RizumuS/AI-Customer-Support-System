@@ -1,8 +1,11 @@
+
 package com.aisupport.gui;
 
 import com.aisupport.database.DBConnection;
+import com.aisupport.model.AIAnalysis;
 import com.aisupport.model.Ticket;
 import com.aisupport.model.User;
+import com.aisupport.service.AIService;
 import com.aisupport.service.TicketService;
 
 import javax.swing.*;
@@ -16,19 +19,34 @@ public class CreateTicketFrame extends JFrame {
 
     private final User loggedInUser;
     private final TicketService ticketService;
+    private final AIService aiService;
 
     private JTextField subjectField;
     private JTextArea descriptionArea;
     private JComboBox<CategoryItem> categoryCombo;
     private JComboBox<String> priorityCombo;
 
+    private JButton analyzeButton;
+    private JButton applySuggestionsButton;
+
+    private JLabel aiCategoryLabel;
+    private JLabel aiConfidenceLabel;
+    private JLabel aiSentimentLabel;
+    private JLabel aiPriorityLabel;
+    private JLabel aiPriorityReasonLabel;
+
+    private JTextArea suggestedResponseArea;
+
+    private AIAnalysis currentAnalysis;
+
     public CreateTicketFrame(User user) {
 
         this.loggedInUser = user;
         this.ticketService = new TicketService();
+        this.aiService = new AIService();
 
         setTitle("Create Support Ticket");
-        setSize(650, 620);
+        setSize(700, 850);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -63,7 +81,7 @@ public class CreateTicketFrame extends JFrame {
         formPanel.setBackground(Color.WHITE);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 5, 10, 5);
+        gbc.insets = new Insets(8, 5, 8, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
 
@@ -72,6 +90,7 @@ public class CreateTicketFrame extends JFrame {
 
         subjectField = new JTextField();
         subjectField.setFont(new Font("Arial", Font.PLAIN, 14));
+
         gbc.gridx = 0;
         gbc.gridy = 1;
         formPanel.add(subjectField, gbc);
@@ -79,29 +98,41 @@ public class CreateTicketFrame extends JFrame {
         // Description
         addLabel(formPanel, gbc, "Describe your issue", 2);
 
-        descriptionArea = new JTextArea(6, 30);
+        descriptionArea = new JTextArea(5, 30);
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
         descriptionArea.setFont(new Font("Arial", Font.PLAIN, 14));
 
-        JScrollPane descriptionScroll = new JScrollPane(descriptionArea);
+        JScrollPane descriptionScroll =
+                new JScrollPane(descriptionArea);
 
         gbc.gridx = 0;
         gbc.gridy = 3;
         formPanel.add(descriptionScroll, gbc);
 
+        // AI Analysis Button
+        analyzeButton = new JButton("Analyze with AI");
+        analyzeButton.setFont(new Font("Arial", Font.BOLD, 13));
+        analyzeButton.setFocusPainted(false);
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        formPanel.add(analyzeButton, gbc);
+
+        analyzeButton.addActionListener(e -> analyzeTicket());
+
         // Category
-        addLabel(formPanel, gbc, "Category", 4);
+        addLabel(formPanel, gbc, "Category", 5);
 
         categoryCombo = new JComboBox<>();
         categoryCombo.setFont(new Font("Arial", Font.PLAIN, 14));
 
         gbc.gridx = 0;
-        gbc.gridy = 5;
+        gbc.gridy = 6;
         formPanel.add(categoryCombo, gbc);
 
         // Priority
-        addLabel(formPanel, gbc, "Priority", 6);
+        addLabel(formPanel, gbc, "Priority", 7);
 
         priorityCombo = new JComboBox<>(
                 new String[]{"LOW", "MEDIUM", "HIGH", "CRITICAL"}
@@ -110,12 +141,87 @@ public class CreateTicketFrame extends JFrame {
         priorityCombo.setSelectedItem("MEDIUM");
 
         gbc.gridx = 0;
-        gbc.gridy = 7;
+        gbc.gridy = 8;
         formPanel.add(priorityCombo, gbc);
 
-        mainPanel.add(formPanel, BorderLayout.CENTER);
+        // AI Analysis Results Panel
+        JPanel aiPanel = new JPanel(new GridBagLayout());
+        aiPanel.setBackground(new Color(245, 248, 252));
+        aiPanel.setBorder(
+                BorderFactory.createTitledBorder("AI Analysis Results")
+        );
 
-        // Buttons
+        GridBagConstraints aiGbc = new GridBagConstraints();
+        aiGbc.insets = new Insets(5, 8, 5, 8);
+        aiGbc.fill = GridBagConstraints.HORIZONTAL;
+        aiGbc.weightx = 1;
+
+        aiCategoryLabel = new JLabel("Category: Not analyzed");
+        aiConfidenceLabel = new JLabel("Confidence: -");
+        aiSentimentLabel = new JLabel("Sentiment: -");
+        aiPriorityLabel = new JLabel("Suggested Priority: -");
+        aiPriorityReasonLabel = new JLabel("Reason: -");
+
+        suggestedResponseArea = new JTextArea(4, 30);
+        suggestedResponseArea.setLineWrap(true);
+        suggestedResponseArea.setWrapStyleWord(true);
+        suggestedResponseArea.setEditable(false);
+        suggestedResponseArea.setFont(
+                new Font("Arial", Font.PLAIN, 13)
+        );
+
+        applySuggestionsButton =
+                new JButton("Apply AI Suggestions");
+
+        applySuggestionsButton.setEnabled(false);
+
+        aiGbc.gridx = 0;
+        aiGbc.gridy = 0;
+        aiPanel.add(aiCategoryLabel, aiGbc);
+
+        aiGbc.gridy = 1;
+        aiPanel.add(aiConfidenceLabel, aiGbc);
+
+        aiGbc.gridy = 2;
+        aiPanel.add(aiSentimentLabel, aiGbc);
+
+        aiGbc.gridy = 3;
+        aiPanel.add(aiPriorityLabel, aiGbc);
+
+        aiGbc.gridy = 4;
+        aiPanel.add(aiPriorityReasonLabel, aiGbc);
+
+        aiGbc.gridy = 5;
+        aiPanel.add(new JLabel("Suggested Response:"), aiGbc);
+
+        aiGbc.gridy = 6;
+        aiPanel.add(
+                new JScrollPane(suggestedResponseArea),
+                aiGbc
+        );
+
+        aiGbc.gridy = 7;
+        aiPanel.add(applySuggestionsButton, aiGbc);
+
+        // Apply AI suggestions
+        applySuggestionsButton.addActionListener(
+                e -> applyAISuggestions()
+        );
+
+        // Combine form and AI results
+        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
+        centerPanel.setBackground(Color.WHITE);
+
+        centerPanel.add(formPanel, BorderLayout.NORTH);
+        centerPanel.add(aiPanel, BorderLayout.CENTER);
+
+        JScrollPane mainScroll = new JScrollPane(centerPanel);
+        mainScroll.setBorder(null);
+        mainScroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        mainPanel.add(mainScroll, BorderLayout.CENTER);
+
+        // Bottom Buttons
         JButton submitButton = new JButton("Submit Ticket");
         JButton cancelButton = new JButton("Cancel");
 
@@ -127,8 +233,8 @@ public class CreateTicketFrame extends JFrame {
         JPanel buttonPanel = new JPanel(
                 new FlowLayout(FlowLayout.RIGHT, 10, 5)
         );
-        buttonPanel.setBackground(Color.WHITE);
 
+        buttonPanel.setBackground(Color.WHITE);
         buttonPanel.add(cancelButton);
         buttonPanel.add(submitButton);
 
@@ -154,6 +260,171 @@ public class CreateTicketFrame extends JFrame {
         gbc.gridy = row;
 
         panel.add(label, gbc);
+    }
+
+    // Analyze ticket using Python AI service
+    private void analyzeTicket() {
+
+        String description = descriptionArea.getText().trim();
+
+        if (description.isEmpty()) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Please enter a ticket description first.",
+                    "Missing Description",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            return;
+        }
+
+        analyzeButton.setEnabled(false);
+        analyzeButton.setText("Analyzing...");
+
+        applySuggestionsButton.setEnabled(false);
+        currentAnalysis = null;
+
+        suggestedResponseArea.setText("");
+
+        aiCategoryLabel.setText("Category: Analyzing...");
+        aiConfidenceLabel.setText("Confidence: -");
+        aiSentimentLabel.setText("Sentiment: -");
+        aiPriorityLabel.setText("Suggested Priority: -");
+        aiPriorityReasonLabel.setText("Reason: -");
+
+        SwingWorker<AIAnalysis, Void> worker =
+                new SwingWorker<>() {
+
+            @Override
+            protected AIAnalysis doInBackground() throws Exception {
+
+                return aiService.analyzeTicket(description);
+            }
+
+            @Override
+            protected void done() {
+
+                analyzeButton.setEnabled(true);
+                analyzeButton.setText("Analyze with AI");
+
+                try {
+
+                    currentAnalysis = get();
+
+                    aiCategoryLabel.setText(
+                            "Category: "
+                                    + currentAnalysis.getCategory()
+                    );
+
+                    aiConfidenceLabel.setText(
+                            String.format(
+                                    "Confidence: %.2f%%",
+                                    currentAnalysis.getConfidence() * 100
+                            )
+                    );
+
+                    aiSentimentLabel.setText(
+                            "Sentiment: "
+                                    + currentAnalysis.getSentiment()
+                    );
+
+                    aiPriorityLabel.setText(
+                            "Suggested Priority: "
+                                    + currentAnalysis.getSuggestedPriority()
+                    );
+
+                    aiPriorityReasonLabel.setText(
+                            "Reason: "
+                                    + currentAnalysis.getPriorityReason()
+                    );
+
+                    suggestedResponseArea.setText(
+                            currentAnalysis.getSuggestedResponse()
+                    );
+
+                    applySuggestionsButton.setEnabled(true);
+
+                    JOptionPane.showMessageDialog(
+                            CreateTicketFrame.this,
+                            "AI analysis completed successfully!",
+                            "AI Analysis",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+
+                } catch (Exception exception) {
+
+                    currentAnalysis = null;
+
+                    aiCategoryLabel.setText(
+                            "Category: Analysis failed"
+                    );
+
+                    JOptionPane.showMessageDialog(
+                            CreateTicketFrame.this,
+                            "Unable to analyze ticket:\n"
+                                    + exception.getMessage(),
+                            "AI Service Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            }
+        };
+
+        worker.execute();
+    }
+
+    // Apply AI suggestions to the form
+    private void applyAISuggestions() {
+
+        if (currentAnalysis == null) {
+            return;
+        }
+
+        String suggestedCategory =
+                currentAnalysis.getCategory();
+
+        boolean categoryFound = false;
+
+        for (int i = 0; i < categoryCombo.getItemCount(); i++) {
+
+            CategoryItem item = categoryCombo.getItemAt(i);
+
+            if (item.id != null &&
+                    item.name.equalsIgnoreCase(suggestedCategory)) {
+
+                categoryCombo.setSelectedIndex(i);
+                categoryFound = true;
+                break;
+            }
+        }
+
+        if (!categoryFound) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "The AI suggested category '"
+                            + suggestedCategory
+                            + "', but it is not available in the category list.",
+                    "Category Not Available",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            return;
+        }
+
+        priorityCombo.setSelectedItem(
+                currentAnalysis.getSuggestedPriority()
+        );
+
+        JOptionPane.showMessageDialog(
+                this,
+                "AI suggestions applied successfully.\n"
+                        + "Please review the selected category and priority "
+                        + "before submitting.",
+                "Suggestions Applied",
+                JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
     // Load categories from MySQL

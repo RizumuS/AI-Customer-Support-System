@@ -1,4 +1,3 @@
-
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="java.util.List" %>
 <%@ page import="java.util.ArrayList" %>
@@ -30,12 +29,25 @@
     String assignmentError =
             request.getParameter("assignmentError");
 
+    String priorityMessage =
+            request.getParameter("priority");
+
+    String priorityError =
+            request.getParameter("priorityError");
+
     List<String> validStatuses = Arrays.asList(
             "OPEN",
             "IN_PROGRESS",
             "WAITING_FOR_CUSTOMER",
             "RESOLVED",
             "CLOSED"
+    );
+
+    List<String> validPriorities = Arrays.asList(
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL"
     );
 %>
 
@@ -114,7 +126,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1450px;
+            min-width: 1600px;
         }
 
         th, td {
@@ -151,7 +163,8 @@
         }
 
         .status-form,
-        .assignment-form {
+        .assignment-form,
+        .priority-form {
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -159,7 +172,8 @@
         }
 
         .status-form select,
-        .assignment-form select {
+        .assignment-form select,
+        .priority-form select {
             padding: 8px;
             border: 1px solid #ccd2dc;
             border-radius: 5px;
@@ -194,6 +208,25 @@
 
         .assign-button:hover {
             background: #17683e;
+        }
+
+        .priority-button {
+            padding: 8px 10px;
+            border: none;
+            border-radius: 5px;
+            background: #c17a18;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .priority-button:hover {
+            background: #995d0e;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .message {
@@ -264,6 +297,8 @@
 
     </div>
 
+    <!-- Ticket status messages -->
+
     <% if ("updated".equals(statusMessage)) { %>
 
         <div class="message success">
@@ -280,6 +315,8 @@
         </div>
 
     <% } %>
+
+    <!-- Ticket assignment messages -->
 
     <% if ("updated".equals(assignmentMessage)) { %>
 
@@ -305,6 +342,36 @@
 
         <div class="message error">
             Assignment error: <%= assignmentError %>
+        </div>
+
+    <% } %>
+
+    <!-- Ticket priority messages -->
+
+    <% if ("updated".equals(priorityMessage)) { %>
+
+        <div class="message success">
+            Ticket priority updated successfully.
+        </div>
+
+    <% } else if ("failed".equals(priorityMessage)) { %>
+
+        <div class="message error">
+            Unable to update ticket priority. Please try again.
+        </div>
+
+    <% } else if ("invalid".equals(priorityMessage)) { %>
+
+        <div class="message error">
+            Invalid ticket ID or priority selected.
+        </div>
+
+    <% } %>
+
+    <% if (priorityError != null) { %>
+
+        <div class="message error">
+            Priority error: <%= priorityError %>
         </div>
 
     <% } %>
@@ -348,6 +415,7 @@
                         <th>Created At</th>
                         <th>Manage Status</th>
                         <th>Manage Assignment</th>
+                        <th>Manage Priority</th>
                     </tr>
 
                 </thead>
@@ -509,6 +577,51 @@
 
                             </td>
 
+                            <!-- Ticket priority management -->
+
+                            <td>
+
+                                <form
+                                    class="priority-form"
+                                    method="post"
+                                    action="${pageContext.request.contextPath}/admin/tickets/priority"
+                                    onsubmit="return confirmPriorityUpdate(this);"
+                                >
+
+                                    <input
+                                        type="hidden"
+                                        name="ticketId"
+                                        value="<%= ticket.getTicketId() %>"
+                                    >
+
+                                    <select name="priority" required>
+
+                                        <% for (String validPriority : validPriorities) { %>
+
+                                            <option
+                                                value="<%= validPriority %>"
+                                                <%= validPriority.equalsIgnoreCase(ticket.getPriority())
+                                                        ? "selected"
+                                                        : "" %>
+                                            >
+                                                <%= validPriority %>
+                                            </option>
+
+                                        <% } %>
+
+                                    </select>
+
+                                    <button
+                                        type="submit"
+                                        class="priority-button"
+                                    >
+                                        Update Priority
+                                    </button>
+
+                                </form>
+
+                            </td>
+
                         </tr>
 
                     <% } %>
@@ -544,6 +657,17 @@
         return confirm(
             "Are you sure you want to assign or reassign this ticket to "
             + selectedAgent + "?"
+        );
+    }
+
+    function confirmPriorityUpdate(form) {
+
+        const selectedPriority =
+            form.elements["priority"].value;
+
+        return confirm(
+            "Are you sure you want to change this ticket's priority to "
+            + selectedPriority + "?"
         );
     }
 

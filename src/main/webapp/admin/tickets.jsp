@@ -427,8 +427,11 @@
                         <tr>
 
                             <td>
-                                <%= ticket.getTicketNumber() %>
-                            </td>
+    <a href="<%= request.getContextPath() %>/admin/ticket?id=<%= ticket.getTicketId() %>"
+       style="color: #2455a4; font-weight: bold; text-decoration: none;">
+        <%= ticket.getTicketNumber() %>
+    </a>
+</td>
 
                             <td>
                                 <%= ticket.getSubject() %>

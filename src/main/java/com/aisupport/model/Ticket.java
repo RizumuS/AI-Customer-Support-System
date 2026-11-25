@@ -8,6 +8,8 @@ public class Ticket {
     private int ticketId;
     private String ticketNumber;
     private int customerId;
+    private String customerName;
+    private String customerEmail;
     private Integer assignedAgentId;
     private Integer categoryId;
     private String categoryName;
@@ -46,6 +48,22 @@ public class Ticket {
 
     public void setCustomerId(int customerId) {
         this.customerId = customerId;
+    }
+
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 
     public Integer getAssignedAgentId() {

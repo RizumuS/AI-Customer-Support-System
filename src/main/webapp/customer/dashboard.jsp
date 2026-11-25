@@ -136,7 +136,9 @@
         <div class="card">
             <h3>Create a Ticket</h3>
             <p>Submit a new support request and describe the issue you are facing.</p>
-            <a href="#">Create Ticket</a>
+            <a href="${pageContext.request.contextPath}/customer/create-ticket">
+                Create Ticket
+            </a>
         </div>
 
         <div class="card">

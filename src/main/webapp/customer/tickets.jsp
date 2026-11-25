@@ -8,6 +8,11 @@
 
     String errorMessage =
             (String) request.getAttribute("errorMessage");
+
+    String successMessage =
+            (String) session.getAttribute("successMessage");
+
+    session.removeAttribute("successMessage");
 %>
 
 <!DOCTYPE html>
@@ -95,6 +100,14 @@
             border-radius: 5px;
         }
 
+        .success {
+    color: #166534;
+    background: #dcfce7;
+    padding: 12px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
         .back-link {
             display: inline-block;
             margin-top: 25px;
@@ -117,11 +130,19 @@
         </a>
     </div>
 
-    <% if (errorMessage != null) { %>
+    <% if (successMessage != null) { %>
 
-        <p class="error"><%= errorMessage %></p>
+    <p class="success"><%= successMessage %></p>
 
-    <% } else if (tickets == null || tickets.isEmpty()) { %>
+<% } %>
+
+<% if (errorMessage != null) { %>
+
+    <p class="error"><%= errorMessage %></p>
+
+<% } %>
+
+<% if (tickets == null || tickets.isEmpty()) { %>
 
         <div class="empty">
             <h3>No support tickets found.</h3>

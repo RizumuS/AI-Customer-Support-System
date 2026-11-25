@@ -62,4 +62,18 @@ public class TicketResponseService {
 
         return responseDAO.getResponsesByTicket(ticketId);
     }
+
+        // Get all conversation messages, including internal notes, for administrators
+    public List<TicketResponse> getAdminTicketResponses(
+            int ticketId
+    ) throws SQLException {
+
+        if (ticketId <= 0) {
+            throw new IllegalArgumentException(
+                    "Invalid ticket ID."
+            );
+        }
+
+        return responseDAO.getAllResponsesByTicketForAdmin(ticketId);
+    }
 }

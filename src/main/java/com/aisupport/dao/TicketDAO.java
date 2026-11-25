@@ -918,7 +918,57 @@ public boolean updateAgentTicketStatus(
         }
     }
 
+    // Get a specific ticket by ID for administrator review
+public Ticket getTicketById(int ticketId) throws SQLException {
 
+    String sql = """
+            SELECT
+                t.*,
+                c.category_name AS category_name,
+                customer_user.full_name AS customer_name,
+                customer_user.email AS customer_email,
+                agent_user.full_name AS assigned_agent_name
+            FROM tickets t
+            LEFT JOIN categories c
+                ON t.category_id = c.category_id
+            LEFT JOIN customers customer
+                ON t.customer_id = customer.customer_id
+            LEFT JOIN users customer_user
+                ON customer.user_id = customer_user.user_id
+            LEFT JOIN agents a
+                ON t.assigned_agent_id = a.agent_id
+            LEFT JOIN users agent_user
+                ON a.user_id = agent_user.user_id
+            WHERE t.ticket_id = ?
+            """;
+
+    try (Connection connection = DBConnection.getConnection();
+         PreparedStatement statement =
+                 connection.prepareStatement(sql)) {
+
+        statement.setInt(1, ticketId);
+
+        try (ResultSet result = statement.executeQuery()) {
+
+            if (result.next()) {
+
+    Ticket ticket = mapTicket(result);
+
+    ticket.setCustomerName(
+            result.getString("customer_name")
+    );
+
+    ticket.setCustomerEmail(
+            result.getString("customer_email")
+    );
+
+    return ticket;
+}
+        }
+    }
+
+    return null;
+}
 
     // Convert database result into a Ticket object
     private Ticket mapTicket(ResultSet result) throws SQLException {

@@ -137,6 +137,18 @@ public Ticket getAgentTicket(
         return ticketDAO.getAllTickets();
     }
 
+    // Get a specific ticket for administrator review
+public Ticket getTicketById(int ticketId) throws SQLException {
+
+    if (ticketId <= 0) {
+        throw new IllegalArgumentException(
+                "Invalid ticket ID."
+        );
+    }
+
+    return ticketDAO.getTicketById(ticketId);
+}
+
     // Get tickets assigned to a particular agent
     public List<Ticket> getTicketsByAgent(
             int agentId

@@ -93,14 +93,31 @@
             font-size: 13px;
         }
 
-        .back-button {
-            display: inline-block;
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
             margin-top: 30px;
+        }
+
+        .action-button {
+            display: inline-block;
             padding: 11px 18px;
-            background: #263445;
             color: white;
             text-decoration: none;
             border-radius: 5px;
+        }
+
+        .conversation-button {
+            background: #2563eb;
+        }
+
+        .conversation-button:hover {
+            background: #1d4ed8;
+        }
+
+        .back-button {
+            background: #263445;
         }
 
         .back-button:hover {
@@ -210,10 +227,19 @@
 
     </div>
 
-    <a class="back-button"
-       href="<%= request.getContextPath() %>/customer/tickets">
-        Back to My Tickets
-    </a>
+    <div class="actions">
+
+        <a class="action-button conversation-button"
+           href="<%= request.getContextPath() %>/customer/ticket/conversation?id=<%= ticket.getTicketId() %>">
+            View Conversation
+        </a>
+
+        <a class="action-button back-button"
+           href="<%= request.getContextPath() %>/customer/tickets">
+            Back to My Tickets
+        </a>
+
+    </div>
 
 </div>
 
